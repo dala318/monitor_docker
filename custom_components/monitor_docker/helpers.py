@@ -105,7 +105,10 @@ class DockerAPI:
         self._interval: int = config[CONF_SCAN_INTERVAL].seconds
         self._retry_interval: int = config[CONF_RETRY]
         _LOGGER.debug(
-            "[%s] CONF_SCAN_INTERVAL=%d, RETRY=%", self._interval, self._retry_interval
+            "[%s]: CONF_SCAN_INTERVAL=%d, RETRY=%d",
+            self._instance,
+            self._interval,
+            self._retry_interval,
         )
 
     async def init(self, startCount=0) -> bool:
@@ -131,11 +134,10 @@ class DockerAPI:
 
             # Do some debugging logging for TCP/TLS
             if url is not None:
-                _LOGGER.debug("%s: Docker URL is '%s'", self._instance, url)
+                _LOGGER.debug("[%s]: Docker URL is '%s'", self._instance, url)
 
                 # Check for TLS if it is not unix
                 if url.find("tcp:") == 0 or url.find("http:") == 0:
-
                     # Set this to true, api needs to called different
                     tcpConnection = True
 
@@ -222,7 +224,7 @@ class DockerAPI:
 
             # We will monitor all containers, including excluded ones.
             # This is needed to get total CPU/Memory usage.
-            _LOGGER.debug("[%s] %s: Container Monitored", self._instance, cname)
+            _LOGGER.debug("[%s] %s: Container added", self._instance, cname)
 
             # Create our Docker Container API
             self._containers[cname] = DockerContainerAPI(
@@ -230,10 +232,20 @@ class DockerAPI:
                 self._api,
                 cname,
             )
-            await self._containers[cname].init()
+            # await self._containers[cname].init()
 
         self._hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, self._monitor_stop)
 
+        return True
+
+    async def run(self):
+        for container in self._containers.values():
+            _LOGGER.debug(
+                "[%s] %s: Container monitored", self._instance, container._name
+            )
+            await container.init()
+
+    async def load(self):
         for component in COMPONENTS:
             load_platform(
                 self._hass,
@@ -242,8 +254,6 @@ class DockerAPI:
                 {CONF_NAME: self._instance},
                 self._config,
             )
-
-        return True
 
     #############################################################
     def _monitor_stop(self, _service_or_event: Event) -> None:
