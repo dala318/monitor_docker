@@ -329,6 +329,34 @@ class DockerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
+    @staticmethod
+    @config_entries.callback
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> DockerOptionsFlow:
+        """Create the options flow."""
+        return DockerOptionsFlow()
+
+
+class DockerOptionsFlow(config_entries.OptionsFlow):
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Manage the options."""
+        if user_input is not None:
+            return self.async_create_entry(data=user_input)
+
+        schema = vol.Schema()
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=self.add_suggested_values_to_schema(
+                # schema=OPTIONS_SCHEMA,
+                schema=schema,
+                options=self.config_entry.options,
+            ),
+        )
+
     # async def async_step_import(self, import_data) -> FlowResult:
     #     """Import config from configuration.yaml."""
     #     return await self.async_step_user(import_data)
