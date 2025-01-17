@@ -61,7 +61,7 @@ async def async_setup_entry(
     """Sensor set up for Hass.io config entry."""
     await async_setup_platform(
         hass=hass,
-        config=config_entry.data,
+        config={**config_entry.data, **config_entry.options},
         async_add_entities=async_add_entities,
         discovery_info={"name": config_entry.data[CONF_NAME]},
     )

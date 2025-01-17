@@ -256,7 +256,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         return False
 
     # Each docker hosts runs in its own thread. We need to pass hass too, for the load_platform
-    asyncio.create_task(RunDocker(hass, config_entry.data))
+    asyncio.create_task(RunDocker(hass, {**config_entry.data, **config_entry.options}))
 
     return True
 

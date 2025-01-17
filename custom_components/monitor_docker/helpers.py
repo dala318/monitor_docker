@@ -1573,6 +1573,7 @@ class DockerContainerEntity(Entity):
             },
             name=alias_name,
             manufacturer=str(container_info.get(CONTAINER_INFO_IMAGE)).split("/")[0],
+            # model=container_info.get(),       # Not available
             # model_id=container_info.get(),    # Not available
             entry_type=DeviceEntryType.SERVICE,
             via_device=(DOMAIN, f"{instance}_{container.get_api().docker_host}"),

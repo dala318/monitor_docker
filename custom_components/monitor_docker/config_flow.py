@@ -70,6 +70,8 @@ class DockerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
         CONF_CERTPATH: "",
         CONF_RETRY: DEFAULT_RETRY,
+    }
+    options = {
         # Containers
         CONF_CONTAINERS: [],
         CONF_CONTAINERS_EXCLUDE: [],  # Not relevant as all are selected
@@ -89,7 +91,6 @@ class DockerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         CONF_PRECISION_NETWORK_KB: PRECISION,
         CONF_PRECISION_NETWORK_MB: PRECISION,
     }
-    options = None
     _docker_api = None
     _reauth_entry: config_entries.ConfigEntry | None = None
     _docker_conditions = DOCKER_PRE_SELECTION
@@ -119,7 +120,7 @@ class DockerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             # Convert some user_input data as preparation to calling API
             if user_input[CONF_URL] == "":
                 user_input[CONF_URL] = None
-            user_input[CONF_MEMORYCHANGE] = self.data[CONF_MEMORYCHANGE]
+            user_input[CONF_MEMORYCHANGE] = self.options[CONF_MEMORYCHANGE]
 
             try:
                 self._docker_api = DockerAPI(self.hass, user_input)
@@ -172,7 +173,7 @@ class DockerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             self._rename_containers = user_input.pop(CONF_RENAME_CONTAINERS)
-            self.data.update(user_input)
+            self.options.update(user_input)
             if not errors:
                 if self._rename_containers:
                     return await self.async_step_containers_rename()
@@ -181,7 +182,7 @@ class DockerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         container_schema = vol.Schema(
             {
                 vol.Optional(
-                    CONF_CONTAINERS, default=self.data[CONF_CONTAINERS]
+                    CONF_CONTAINERS, default=self.options[CONF_CONTAINERS]
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=list(self._docker_api.list_containers()),
@@ -207,31 +208,31 @@ class DockerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input is not None:
-            # self.data.update(user_input)
-            self.data[CONF_RENAME_ENITITY] = user_input.pop(CONF_RENAME_ENITITY)
-            for container in self.data[CONF_CONTAINERS]:
-                self.data[CONF_RENAME][container] = name = user_input.pop(container)
+            # self.options.update(user_input)
+            self.options[CONF_RENAME_ENITITY] = user_input.pop(CONF_RENAME_ENITITY)
+            for container in self.options[CONF_CONTAINERS]:
+                self.options[CONF_RENAME][container] = name = user_input.pop(container)
                 if name in [
-                    v for k, v in self.data[CONF_RENAME].items() if k != container
+                    v for k, v in self.options[CONF_RENAME].items() if k != container
                 ]:
                     errors["base"] = "duplicate_names"
-                    self.data[CONF_RENAME].pop(container)
+                    self.options[CONF_RENAME].pop(container)
             if not errors:
                 return await self.async_step_conditions()
 
         container_schema = vol.Schema(
             {
                 vol.Required(
-                    CONF_RENAME_ENITITY, default=self.data[CONF_RENAME_ENITITY]
+                    CONF_RENAME_ENITITY, default=self.options[CONF_RENAME_ENITITY]
                 ): bool
             }
         )
-        for container in self.data[CONF_CONTAINERS]:
+        for container in self.options[CONF_CONTAINERS]:
             container_schema = container_schema.extend(
                 {
                     vol.Required(
                         container,
-                        default=self.data[CONF_RENAME].get(container, container),
+                        default=self.options[CONF_RENAME].get(container, container),
                     ): str
                 }
             )
@@ -253,14 +254,14 @@ class DockerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._container_conditions = user_input.pop(
                 CONF_MONITORED_CONTAINER_CONDITIONS
             )
-            self.data.update(user_input)
+            self.options.update(user_input)
 
             if not errors:
-                self.data[CONF_MONITORED_CONDITIONS] = (
+                self.options[CONF_MONITORED_CONDITIONS] = (
                     self._docker_conditions + self._container_conditions
                 )
                 return self.async_create_entry(
-                    title=self.data[CONF_NAME], data=self.data
+                    title=self.data[CONF_NAME], data=self.data, options=self.options
                 )
 
         conditions_schema = vol.Schema(
@@ -282,36 +283,42 @@ class DockerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         multiple=True,
                     ),
                 ),
-                vol.Required(CONF_SENSORNAME, default=self.data[CONF_SENSORNAME]): str,
                 vol.Required(
-                    CONF_SWITCHENABLED, default=self.data[CONF_SWITCHENABLED]
+                    CONF_SENSORNAME, default=self.options[CONF_SENSORNAME]
+                ): str,
+                vol.Required(
+                    CONF_SWITCHENABLED, default=self.options[CONF_SWITCHENABLED]
                 ): bool,
-                vol.Required(CONF_SWITCHNAME, default=self.data[CONF_SWITCHNAME]): str,
                 vol.Required(
-                    CONF_BUTTONENABLED, default=self.data[CONF_BUTTONENABLED]
+                    CONF_SWITCHNAME, default=self.options[CONF_SWITCHNAME]
+                ): str,
+                vol.Required(
+                    CONF_BUTTONENABLED, default=self.options[CONF_BUTTONENABLED]
                 ): bool,
-                vol.Required(CONF_BUTTONNAME, default=self.data[CONF_BUTTONNAME]): str,
                 vol.Required(
-                    CONF_MEMORYCHANGE, default=self.data[CONF_MEMORYCHANGE]
+                    CONF_BUTTONNAME, default=self.options[CONF_BUTTONNAME]
+                ): str,
+                vol.Required(
+                    CONF_MEMORYCHANGE, default=self.options[CONF_MEMORYCHANGE]
                 ): int,
                 vol.Required(
-                    CONF_PRECISION_CPU, default=self.data[CONF_PRECISION_CPU]
+                    CONF_PRECISION_CPU, default=self.options[CONF_PRECISION_CPU]
                 ): int,
                 vol.Required(
                     CONF_PRECISION_MEMORY_MB,
-                    default=self.data[CONF_PRECISION_MEMORY_MB],
+                    default=self.options[CONF_PRECISION_MEMORY_MB],
                 ): int,
                 vol.Required(
                     CONF_PRECISION_MEMORY_PERCENTAGE,
-                    default=self.data[CONF_PRECISION_MEMORY_PERCENTAGE],
+                    default=self.options[CONF_PRECISION_MEMORY_PERCENTAGE],
                 ): int,
                 vol.Required(
                     CONF_PRECISION_NETWORK_KB,
-                    default=self.data[CONF_PRECISION_NETWORK_KB],
+                    default=self.options[CONF_PRECISION_NETWORK_KB],
                 ): int,
                 vol.Required(
                     CONF_PRECISION_NETWORK_MB,
-                    default=self.data[CONF_PRECISION_NETWORK_MB],
+                    default=self.options[CONF_PRECISION_NETWORK_MB],
                 ): int,
             }
         )
