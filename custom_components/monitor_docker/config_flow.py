@@ -7,6 +7,7 @@ from typing import Any
 
 import voluptuous as vol
 
+from homeassistant.components import persistent_notification
 from homeassistant.config_entries import (
     SOURCE_REAUTH,
     SOURCE_RECONFIGURE,
@@ -305,6 +306,12 @@ class DockerConfigFlow(ConfigFlow, domain=DOMAIN):
         await self.async_set_unique_id(import_info[CONF_NAME])
         self._abort_if_unique_id_configured()
         for key, value in import_info.items():
-            if key in self.data:
+            if key in self.data and key not in [CONF_CONTAINERS_EXCLUDE]:
                 self.data[key] = value
+        persistent_notification.async_create(
+            hass=self.hass,
+            title=f"Monitor Docker settings for {self.data[CONF_NAME]} has been imported to Config Entry",
+            message=f"You can now remove  remove your settings for {self.data[CONF_NAME]} from `configuration.yaml` as they are now managed via the ConfigFlow UI.",
+            notification_id=f"{DOMAIN}_import_{self.data[CONF_NAME]}",
+        )
         return self.async_create_entry(title=self.data[CONF_NAME], data=self.data)
