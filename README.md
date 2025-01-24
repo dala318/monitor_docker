@@ -82,6 +82,8 @@ For now all selections made during set-up will be frozen for that instance (is n
 
 #### Manual
 
+> **IMPORTANT NOTICE!**: While manual configuration in `configuration.yaml` is still possible it will only be converted into a UI ConfigEntry upon first boot and after that ignored (while displaying a Repair issue to remove deprecaded onused config). It's recommended to setup the integration directly from UI using above process
+
 To use the `monitor_docker` in your installation, add the following to your `configuration.yaml` file:
 
 ```yaml
